@@ -51,12 +51,12 @@ data class Session(
 
 @Serializable
 data class MapEntry(
-    val label: String,
+    val label: String,                       // store section, e.g. "Dairy & Eggs"
     val category: String? = null,
+    val keywords: List<String> = emptyList(), // example items in the section
     val position: Point,
     @SerialName("path_distance_m") val pathDistanceM: Double = 0.0,
     @SerialName("observation_count") val observationCount: Int = 0,
-    @SerialName("avg_price") val avgPrice: Double? = null,
 )
 
 @Serializable

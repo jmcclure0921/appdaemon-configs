@@ -8,19 +8,24 @@ plug in a cloud vision API or a trained on-device model.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
 
 @dataclass
 class RawDetection:
-    """A product observed at a moment in the video, before it is located."""
+    """A store section observed at a moment in the video, before it is located.
+
+    The goal is route optimization, so the signal we care about is the *section*
+    (dairy, produce, frozen, …), not individual products or prices. `keywords`
+    holds example items seen in the section so a shopping-list entry can be
+    matched to it.
+    """
 
     t_ms: int
-    label: str
-    raw_text: Optional[str] = None
-    category: Optional[str] = None
-    price: Optional[float] = None
+    label: str  # the section name, e.g. "Dairy"
+    category: Optional[str] = None  # normalized aisle category
+    keywords: list[str] = field(default_factory=list)  # example items in the section
     confidence: float = 0.0
 
 

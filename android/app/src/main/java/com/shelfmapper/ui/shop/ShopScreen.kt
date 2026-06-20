@@ -112,8 +112,16 @@ private fun RouteCard(stops: List<RouteStop>, totalDistanceM: Double, unmatched:
             )
             HorizontalDivider()
             stops.forEach { stop ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${stop.order + 1}. ${stop.label}")
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("${stop.order + 1}. ${stop.query}")
+                        // The section to walk to for this item.
+                        Text(stop.label, style = MaterialTheme.typography.bodySmall)
+                    }
                     Text("${stop.pathDistanceM.roundToInt()} m", style = MaterialTheme.typography.bodySmall)
                 }
             }

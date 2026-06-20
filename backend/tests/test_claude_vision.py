@@ -4,7 +4,7 @@ No API key, SDK, or ffmpeg required — the model call and frame sampling are
 both stubbed so we exercise the detector's own logic (dedup, timestamping,
 mapping of structured output to RawDetection).
 """
-from app.vision.claude_vision import ClaudeVisionDetector, FrameProducts, ProductReading
+from app.vision.claude_vision import ClaudeVisionDetector, FrameSections, SectionReading
 from app.vision.frames import Frame
 
 
@@ -33,26 +33,27 @@ def _frames(n):
     return [Frame(t_ms=i * 1000, jpeg=b"jpeg-%d" % i) for i in range(n)]
 
 
-def test_maps_structured_output_to_detections():
+def test_maps_structured_output_to_section_detections():
     per_frame = [
-        FrameProducts(products=[ProductReading(name="2% Milk", category="dairy", price=3.49, confidence=0.9)]),
-        FrameProducts(products=[ProductReading(name="Large Eggs", category="dairy", price=2.99, confidence=0.8)]),
+        FrameSections(sections=[SectionReading(section="Dairy & Eggs", category="dairy", example_items=["milk", "eggs"], confidence=0.9)]),
+        FrameSections(sections=[SectionReading(section="Frozen", category="frozen", example_items=["ice cream"], confidence=0.8)]),
     ]
     detector = ClaudeVisionDetector(
         client=FakeClient(per_frame),
         sampler=lambda video, dur: _frames(2),
     )
     dets = detector.detect(session_id="s", duration_ms=2000, video=b"video")
-    assert [d.label for d in dets] == ["2% Milk", "Large Eggs"]
+    assert [d.label for d in dets] == ["Dairy & Eggs", "Frozen"]
     assert dets[0].t_ms == 0 and dets[1].t_ms == 1000
-    assert dets[0].price == 3.49
+    assert "milk" in dets[0].keywords
+    assert dets[0].category == "dairy"
 
 
-def test_dedupes_product_across_consecutive_frames():
-    # Same product visible in three consecutive 1s-apart frames → one detection.
-    milk = FrameProducts(products=[ProductReading(name="2% Milk", confidence=0.9)])
+def test_dedupes_section_across_consecutive_frames():
+    # Same section visible in three consecutive 1s-apart frames → one detection.
+    dairy = FrameSections(sections=[SectionReading(section="Dairy & Eggs", confidence=0.9)])
     detector = ClaudeVisionDetector(
-        client=FakeClient([milk, milk, milk]),
+        client=FakeClient([dairy, dairy, dairy]),
         sampler=lambda video, dur: _frames(3),
     )
     dets = detector.detect(session_id="s", duration_ms=3000, video=b"video")
@@ -65,9 +66,9 @@ def test_no_video_returns_no_detections():
     assert detector.detect(session_id="s", duration_ms=0, video=None) == []
 
 
-def test_empty_frame_products_yield_nothing():
+def test_empty_frame_yields_nothing():
     detector = ClaudeVisionDetector(
-        client=FakeClient([FrameProducts(products=[])]),
+        client=FakeClient([FrameSections(sections=[])]),
         sampler=lambda video, dur: _frames(1),
     )
     assert detector.detect(session_id="s", duration_ms=1000, video=b"v") == []

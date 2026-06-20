@@ -25,9 +25,8 @@ def locate_detections(
                 session_id=session_id,
                 t_ms=r.t_ms,
                 label=r.label,
-                raw_text=r.raw_text,
                 category=r.category,
-                price=r.price,
+                keywords=list(r.keywords),
                 confidence=r.confidence,
                 position=pos,
                 path_distance_m=dist,
@@ -41,11 +40,12 @@ def _norm(label: str) -> str:
 
 
 def build_map(store_id: str, detections: list[Detection]) -> StoreMap:
-    """Aggregate detections (across all of a store's sessions) into a map.
+    """Aggregate detections (across all of a store's sessions) into a section map.
 
-    Observations of the same product label are averaged: position is a
-    confidence-weighted centroid, path distance and price are confidence-weighted
-    means. This smooths out per-session GPS noise.
+    Observations of the same section are averaged: position is a
+    confidence-weighted centroid and path distance a confidence-weighted mean,
+    smoothing out per-session GPS noise. Example items seen in the section are
+    unioned into `keywords` so shopping-list entries can be matched to it.
     """
     groups: dict[str, list[Detection]] = defaultdict(list)
     for d in detections:
@@ -57,19 +57,26 @@ def build_map(store_id: str, detections: list[Detection]) -> StoreMap:
         cx = sum(d.position.x * max(d.confidence, 1e-6) for d in dets) / wsum
         cy = sum(d.position.y * max(d.confidence, 1e-6) for d in dets) / wsum
         cdist = sum(d.path_distance_m * max(d.confidence, 1e-6) for d in dets) / wsum
-        priced = [d for d in dets if d.price is not None]
-        avg_price = sum(d.price for d in priced) / len(priced) if priced else None  # type: ignore[misc]
-        # Use the most frequent original label spelling for display.
+        # Use the most confident original spelling for display.
         label = max(dets, key=lambda d: d.confidence).label
         category = next((d.category for d in dets if d.category), None)
+        # Union example items, preserving first-seen order.
+        keywords: list[str] = []
+        seen: set[str] = set()
+        for d in dets:
+            for kw in d.keywords:
+                k = _norm(kw)
+                if k and k not in seen:
+                    seen.add(k)
+                    keywords.append(kw)
         entries.append(
             MapEntry(
                 label=label,
                 category=category,
+                keywords=keywords,
                 position=Point(x=cx, y=cy),
                 path_distance_m=cdist,
                 observation_count=len(dets),
-                avg_price=round(avg_price, 2) if avg_price is not None else None,
             )
         )
     entries.sort(key=lambda e: e.path_distance_m)

@@ -60,10 +60,9 @@ class Detection(BaseModel):
     id: str
     session_id: str
     t_ms: int
-    label: str
-    raw_text: Optional[str] = None
+    label: str  # store section, e.g. "Dairy"
     category: Optional[str] = None
-    price: Optional[float] = None
+    keywords: list[str] = Field(default_factory=list)  # example items in the section
     confidence: float = 0.0
     position: Point
     path_distance_m: float = 0.0
@@ -83,12 +82,12 @@ class Session(BaseModel):
 
 
 class MapEntry(BaseModel):
-    label: str
+    label: str  # store section, e.g. "Dairy"
     category: Optional[str] = None
+    keywords: list[str] = Field(default_factory=list)  # example items, for matching
     position: Point
     path_distance_m: float = 0.0
     observation_count: int = 0
-    avg_price: Optional[float] = None
 
 
 class StoreMap(BaseModel):

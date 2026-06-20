@@ -42,9 +42,10 @@ Select the backend with `SHELFMAPPER_VISION`:
 
 `app/vision/claude_vision.py` samples JPEG frames from the uploaded video
 (`app/vision/frames.py`, via `ffmpeg`) and sends each to a Claude model, which
-reads the shelf price tags and returns a structured list of products
-(name, category, price, confidence) using the Messages API's structured-output
-support — OCR and product identification in one call. Products seen across
+classifies the **store section** the frame shows (dairy, produce, frozen, …)
+plus a few example items, as structured output. We map *where sections are* for
+route planning — not prices or exact SKUs — so an ordinary walking video is
+enough; the shopper never has to stop and scan tags. Sections seen across
 consecutive frames are de-duplicated.
 
 ```bash
@@ -57,23 +58,17 @@ uvicorn app.main:app --reload
 ```
 
 **Cost & coverage.** A session is many frames, so this is a high-volume
-image-extraction workload. Knobs:
+image-classification workload. Knobs:
 
-- `SHELFMAPPER_VISION_MODEL` — point at `claude-haiku-4-5` or
-  `claude-sonnet-4-6` to cut per-frame cost.
+- `SHELFMAPPER_VISION_MODEL` — section classification is easy, so a cheaper
+  model is a good fit: point at `claude-haiku-4-5` or `claude-sonnet-4-6`.
 - `SHELFMAPPER_FRAME_FPS` (default `1.0`) — frames sampled per second. At a
-  ~1 m/s walking pace 1 fps is ~1 frame/meter, enough to *locate* products but
-  liable to skip a small price tag; raise to `2` for better tag coverage at
-  higher cost. Products are de-duplicated across frames.
+  ~1 m/s walking pace 1 fps is ~1 frame/meter, plenty to identify sections;
+  lower it to cut cost on long sessions. Sections are de-duplicated across
+  frames.
 
 The system prompt is prompt-cached across a session's frames, and moving frame
 processing to the Batch API would halve cost again for offline runs.
-
-**Walk-by vs. price tags.** Recognizing *what is where* (which drives route
-optimization) works from a normal walking video — the model identifies products
-and shelf sections even when the tag is unreadable. Reading *prices and exact
-variants* needs legible tags, so the app captures at FHD with stabilization and
-prompts the user to slow down or step closer where prices matter.
 
 Locating detections in the store is **not** the detector's concern — `mapping.py`
 does that from the recorded path, so any detector slots in unchanged. To add a

@@ -83,7 +83,7 @@ class RecordViewModel(
             _state.update {
                 it.copy(
                     phase = RecordPhase.Recording,
-                    message = "Walk slowly • slow down near prices",
+                    message = "Recording — walk each aisle",
                     detectionCount = 0,
                     recordingStartedAt = System.currentTimeMillis(),
                 )

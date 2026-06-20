@@ -54,33 +54,36 @@ products can be ordered "as you walk" even before a full 2-D layout is trusted.
 }
 ```
 
-### Detection (a product seen in the video, pinned to the path)
+### Detection (a store section seen in the video, pinned to the path)
+
+The goal is route optimization, so detections are **store sections** (dairy,
+produce, frozen, …), not individual products or prices. `keywords` holds example
+items seen in the section so a shopping-list entry can be matched to it.
 
 ```json
 {
   "id": "str",
   "session_id": "str",
   "t_ms": 0,                       // frame time, used to look up path position
-  "label": "str",                  // normalized product name
-  "raw_text": "str|null",          // OCR text from the shelf tag
-  "category": "str|null",
-  "price": 0.0,                    // nullable
+  "label": "str",                  // section name, e.g. "Dairy & Eggs"
+  "category": "str|null",          // normalized aisle category
+  "keywords": ["milk", "eggs"],    // example items in the section
   "confidence": 0.0,
   "position": { "x": 0.0, "y": 0.0 },
   "path_distance_m": 0.0
 }
 ```
 
-### MapEntry (aggregated product location for a store)
+### MapEntry (aggregated section location for a store)
 
 ```json
 {
-  "label": "str",
+  "label": "str",                  // section name, e.g. "Dairy & Eggs"
   "category": "str|null",
+  "keywords": ["milk", "eggs"],    // unioned example items, used for matching
   "position": { "x": 0.0, "y": 0.0 },
   "path_distance_m": 0.0,
-  "observation_count": 0,
-  "avg_price": 0.0
+  "observation_count": 0
 }
 ```
 
@@ -92,7 +95,7 @@ products can be ordered "as you walk" even before a full 2-D layout is trusted.
     {
       "order": 0,
       "query": "milk",                 // the shopping-list item this satisfies
-      "label": "2% Milk",              // matched map entry
+      "label": "Dairy & Eggs",         // the section to walk to for it
       "position": { "x": 0.0, "y": 0.0 },
       "path_distance_m": 0.0,
       "matched": true

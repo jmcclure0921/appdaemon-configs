@@ -158,8 +158,8 @@ private fun Controls(
 
         if (state.phase == RecordPhase.Idle || state.phase == RecordPhase.Done) {
             Text(
-                "Walk down the aisles to map the store. Hold the phone steady and aim at the "
-                    + "shelves — slow down or step closer where you want prices read.",
+                "Walk down each aisle at a normal pace, aiming the camera at the shelves. "
+                    + "We map which sections are where — no need to stop or scan tags.",
                 color = Color.White.copy(alpha = 0.85f),
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center,

@@ -1,10 +1,10 @@
 """A real `VisionDetector` backed by a Claude multimodal model.
 
-Each sampled video frame is sent to the model, which reads the shelf price tags
-and identifies the products visible, returning a structured list (name, category,
-price, confidence) via the Messages API's structured-output support. This folds
-OCR and product understanding into one call, so there's no separate text-parsing
-stage.
+The goal is route optimization, so each sampled frame is classified by the
+*store section* it shows (dairy, produce, frozen, …) plus a few example items —
+not prices or exact SKUs. The model returns this as structured output in one
+call. Section recognition works from an ordinary walking video, so the shopper
+doesn't need to stop and scan tags.
 
 Locating detections in the store is *not* this class's job — it emits timestamped
 `RawDetection`s and `mapping.py` pins them to the recorded path.
@@ -31,40 +31,42 @@ from .frames import Frame, sample_frames
 
 DEFAULT_MODEL = "claude-opus-4-8"
 
-# Collapse the same product seen across consecutive frames into one detection.
-_DEDUP_WINDOW_MS = 4_000
+# Collapse the same section seen across consecutive frames into one detection.
+_DEDUP_WINDOW_MS = 6_000
 
 _SYSTEM_PROMPT = (
-    "You are a grocery shelf scanner. You are shown a single still frame from a "
-    "video of someone walking down a store aisle. Identify the distinct products "
-    "visible on the shelves, reading the shelf price tags for the product name and "
-    "price where legible.\n"
+    "You map grocery stores for shopping-route planning. You are shown a single "
+    "still frame from a video of someone walking through a store. Identify which "
+    "store SECTION(S) the shelves in this frame belong to — we care about where "
+    "sections are, not individual prices.\n"
     "Rules:\n"
-    "- Only report products that are clearly on a shelf in THIS frame.\n"
-    "- Normalize each name to a concise product name (e.g. '2% Milk', not the full "
-    "tag text). Put the raw tag text, if any, in raw_text.\n"
-    "- category: a short aisle-style category (produce, dairy, meat, bakery, "
-    "pantry, frozen, beverages, snacks, household), or null if unsure.\n"
-    "- price: the shelf price as a number, or null if not legible.\n"
-    "- confidence: 0..1 for how sure you are the product is present and identified.\n"
-    "- If no products are clearly visible, return an empty list."
+    "- section: the aisle/section name as a shopper would say it, e.g. 'Dairy & "
+    "Eggs', 'Produce', 'Frozen', 'Baking & Spices', 'Snacks', 'Household'.\n"
+    "- category: a single normalized lowercase category (produce, dairy, meat, "
+    "bakery, pantry, baking, frozen, beverages, snacks, household), or null.\n"
+    "- example_items: a few specific products visible in this section (e.g. "
+    "['milk', 'eggs', 'cheese']) so a shopping list can be matched to it. You do "
+    "NOT need price tags to be legible — recognizing the products is enough.\n"
+    "- confidence: 0..1 that the section is correctly identified.\n"
+    "- Usually report ONE dominant section per frame; report two only if the frame "
+    "clearly straddles an aisle boundary. If nothing is identifiable, return an "
+    "empty list."
 )
 
 
-class ProductReading(BaseModel):
-    """One product the model saw in a frame."""
+class SectionReading(BaseModel):
+    """One store section the model saw in a frame."""
 
-    name: str
-    raw_text: Optional[str] = None
+    section: str
     category: Optional[str] = None
-    price: Optional[float] = None
+    example_items: list[str] = Field(default_factory=list)
     # No range constraint: structured outputs ignore min/max, and we'd rather
     # accept a stray value than fail validation on a whole frame. Clamped below.
     confidence: float = 0.5
 
 
-class FrameProducts(BaseModel):
-    products: list[ProductReading] = Field(default_factory=list)
+class FrameSections(BaseModel):
+    sections: list[SectionReading] = Field(default_factory=list)
 
 
 # A frame sampler: (video_bytes, duration_ms) -> frames. Injectable for tests.
@@ -117,19 +119,18 @@ class ClaudeVisionDetector:
 
         for frame in frames:
             for reading in self._read_frame(frame.jpeg):
-                key = " ".join(reading.name.lower().split())
+                key = " ".join(reading.section.lower().split())
                 prev = last_seen.get(key)
                 last_seen[key] = frame.t_ms
-                # Skip a product already reported in a recent nearby frame.
+                # Skip a section already reported in a recent nearby frame.
                 if prev is not None and frame.t_ms - prev < _DEDUP_WINDOW_MS:
                     continue
                 detections.append(
                     RawDetection(
                         t_ms=frame.t_ms,
-                        label=reading.name.strip(),
-                        raw_text=reading.raw_text,
+                        label=reading.section.strip(),
                         category=reading.category,
-                        price=reading.price,
+                        keywords=[i.strip() for i in reading.example_items if i.strip()],
                         confidence=max(0.0, min(1.0, reading.confidence)),
                     )
                 )
@@ -137,7 +138,7 @@ class ClaudeVisionDetector:
         detections.sort(key=lambda d: d.t_ms)
         return detections
 
-    def _read_frame(self, jpeg: bytes) -> list[ProductReading]:
+    def _read_frame(self, jpeg: bytes) -> list[SectionReading]:
         b64 = base64.standard_b64encode(jpeg).decode("ascii")
         response = self._get_client().messages.parse(
             model=self.model,
@@ -162,11 +163,11 @@ class ClaudeVisionDetector:
                                 "data": b64,
                             },
                         },
-                        {"type": "text", "text": "List the products on the shelves."},
+                        {"type": "text", "text": "Which store section(s) is this?"},
                     ],
                 }
             ],
-            output_format=FrameProducts,
+            output_format=FrameSections,
         )
         parsed = response.parsed_output
-        return parsed.products if parsed else []
+        return parsed.sections if parsed else []

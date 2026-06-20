@@ -35,10 +35,12 @@ truth that both the app and the backend implement.
 1. **Record** — Walk the store. The app records shelf video and timestamps your
    path (latitude/longitude + step/heading from device motion).
 2. **Map** — The app uploads the session. The backend samples frames, runs
-   vision to detect products + read labels/prices, and pins each detection to a
-   position along your recorded path. Detections aggregate into a per-store map.
+   vision to identify the **store section** each frame shows (dairy, produce,
+   frozen, …), and pins it to a position along your recorded path. Sections
+   aggregate into a per-store map. (Prices and exact products aren't needed —
+   just where each section is.)
 3. **Optimize** — Give the app a shopping list. The backend matches each item to
-   a location in the store map and returns a route (an ordered list of stops)
+   its section in the store map and returns a route (an ordered list of stops)
    that minimizes total walking distance from the entrance.
 
 ## Status
@@ -54,8 +56,8 @@ This is an early foundation, not a finished product. What works today:
 The vision step is behind an interface (`backend/app/vision/base.py`) with two
 implementations: a deterministic **stub** (so the whole loop runs with no GPU,
 API key, or ffmpeg) and a real **Claude** detector that samples video frames and
-extracts products + prices from the shelf tags via a multimodal model. Select
-with `SHELFMAPPER_VISION=stub|claude`; see `backend/README.md`.
+classifies the store section each shows via a multimodal model. Select with
+`SHELFMAPPER_VISION=stub|claude`; see `backend/README.md`.
 
 ## Quick start (backend)
 
