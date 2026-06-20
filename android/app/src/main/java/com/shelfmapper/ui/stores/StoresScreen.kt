@@ -85,7 +85,7 @@ fun StoresScreen(vm: StoresViewModel = viewModel(factory = StoresViewModel.Facto
                         if (selected) Icon(Icons.Filled.CheckCircle, contentDescription = "Selected")
                     },
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                        .clickable { vm.select(store.id) },
+                        .clickable { vm.select(store) },
                 )
             }
         }

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.video.FallbackStrategy
 import androidx.camera.video.FileOutputOptions
 import androidx.camera.video.Quality
 import androidx.camera.video.QualitySelector
@@ -33,10 +34,21 @@ class VideoRecorder(private val context: Context) {
         val preview = Preview.Builder().build().also {
             it.setSurfaceProvider(previewView.surfaceProvider)
         }
+        // Prefer FHD so small shelf price tags survive a normal walking pace;
+        // fall back down the ladder on devices that can't do 1080p.
         val recorder = Recorder.Builder()
-            .setQualitySelector(QualitySelector.from(Quality.HD))
+            .setQualitySelector(
+                QualitySelector.fromOrderedList(
+                    listOf(Quality.FHD, Quality.HD, Quality.SD),
+                    FallbackStrategy.lowerQualityOrHigherThan(Quality.HD),
+                )
+            )
             .build()
-        val capture = VideoCapture.withOutput(recorder)
+        // Video stabilization fights the motion blur you get while walking; the
+        // flag is ignored on devices that don't support it.
+        val capture = VideoCapture.Builder(recorder)
+            .setVideoStabilizationEnabled(true)
+            .build()
         provider.unbindAll()
         provider.bindToLifecycle(
             lifecycleOwner,

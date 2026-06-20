@@ -72,7 +72,12 @@ Sampler = Callable[[bytes, int], list[Frame]]
 
 
 def _default_sampler(video: bytes, duration_ms: int) -> list[Frame]:
-    return sample_frames(video)
+    # Frames per second to sample. At a normal ~1 m/s walking pace, 1 fps is ~1
+    # frame per meter — fine for locating products, but it can skip a small price
+    # tag between frames. Raise it (e.g. 2) for better tag coverage at higher
+    # per-session model cost; the detector de-dups products across frames.
+    fps = float(os.environ.get("SHELFMAPPER_FRAME_FPS", "1.0"))
+    return sample_frames(video, fps=fps)
 
 
 class ClaudeVisionDetector:

@@ -25,7 +25,10 @@ Three tabs:
 
 - **Stores** — create the store you're about to map, or pick an existing one.
   The selection is remembered across launches.
-- **Record** — live camera preview with a record button. While recording it
+- **Record** — live camera preview with a record button. Shows which store
+  you're mapping, an elapsed timer while recording, and capture guidance (walk
+  slowly, hold steady, slow down near prices). Captures at FHD with video
+  stabilization so shelf tags survive a normal walking pace. While recording it
   captures the walking path (fused location + step counter), then on stop it
   uploads the video + path and polls until the backend has mapped it.
 - **Shop** — a local shopping list. "Optimize route" sends the list to the

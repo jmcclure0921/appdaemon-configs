@@ -27,8 +27,11 @@ enum class RecordPhase { Idle, Recording, Uploading, Processing, Done, Error }
 data class RecordUiState(
     val phase: RecordPhase = RecordPhase.Idle,
     val selectedStoreId: String? = null,
+    val selectedStoreName: String? = null,
     val message: String? = null,
     val detectionCount: Int = 0,
+    /** Wall-clock start of the current recording, for the elapsed timer; null when idle. */
+    val recordingStartedAt: Long? = null,
 )
 
 class RecordViewModel(
@@ -46,6 +49,9 @@ class RecordViewModel(
     init {
         viewModelScope.launch {
             repo.selectedStoreId.collect { id -> _state.update { it.copy(selectedStoreId = id) } }
+        }
+        viewModelScope.launch {
+            repo.selectedStoreName.collect { name -> _state.update { it.copy(selectedStoreName = name) } }
         }
     }
 
@@ -74,7 +80,14 @@ class RecordViewModel(
             video.start(file)
             path.start()
         }.onSuccess {
-            _state.update { it.copy(phase = RecordPhase.Recording, message = "Recording — walk the aisles", detectionCount = 0) }
+            _state.update {
+                it.copy(
+                    phase = RecordPhase.Recording,
+                    message = "Walk slowly • slow down near prices",
+                    detectionCount = 0,
+                    recordingStartedAt = System.currentTimeMillis(),
+                )
+            }
         }.onFailure { e ->
             _state.update { it.copy(phase = RecordPhase.Error, message = e.message ?: "Could not start recording") }
         }
@@ -86,7 +99,9 @@ class RecordViewModel(
             video.stop()
             val recording = path.stop()
             val file = currentFile
-            _state.update { it.copy(phase = RecordPhase.Uploading, message = "Uploading session…") }
+            _state.update {
+                it.copy(phase = RecordPhase.Uploading, message = "Uploading session…", recordingStartedAt = null)
+            }
 
             val meta = SessionMeta(
                 recordedAt = Instant.now().toString(),

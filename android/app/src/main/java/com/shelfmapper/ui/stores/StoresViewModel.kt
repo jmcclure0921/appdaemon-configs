@@ -48,14 +48,14 @@ class StoresViewModel(private val repo: ShelfMapperRepository) : ViewModel() {
             _state.update { it.copy(loading = true, error = null) }
             runCatching { repo.createStore(name.trim(), address?.takeIf { it.isNotBlank() }) }
                 .onSuccess { store ->
-                    repo.selectStore(store.id)
+                    repo.selectStore(store.id, store.name)
                     refresh()
                 }
                 .onFailure { e -> _state.update { it.copy(loading = false, error = e.message ?: "Failed to create store") } }
         }
     }
 
-    fun select(id: String) = repo.selectStore(id)
+    fun select(store: Store) = repo.selectStore(store.id, store.name)
 
     companion object {
         val Factory = viewModelFactory {

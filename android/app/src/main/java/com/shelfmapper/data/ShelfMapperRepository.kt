@@ -20,12 +20,14 @@ class ShelfMapperRepository(
     private val dao = AppDatabase.get(context).shoppingDao()
     private val prefs = context.getSharedPreferences("shelfmapper", Context.MODE_PRIVATE)
 
-    /** Currently selected store id, persisted across launches. */
+    /** Currently selected store, persisted across launches. */
     val selectedStoreId = MutableStateFlow(prefs.getString(KEY_STORE, null))
+    val selectedStoreName = MutableStateFlow(prefs.getString(KEY_STORE_NAME, null))
 
-    fun selectStore(id: String?) {
-        prefs.edit().putString(KEY_STORE, id).apply()
+    fun selectStore(id: String?, name: String? = null) {
+        prefs.edit().putString(KEY_STORE, id).putString(KEY_STORE_NAME, name).apply()
         selectedStoreId.value = id
+        selectedStoreName.value = name
     }
 
     // ---- stores ----------------------------------------------------------
@@ -65,5 +67,6 @@ class ShelfMapperRepository(
 
     private companion object {
         const val KEY_STORE = "selected_store_id"
+        const val KEY_STORE_NAME = "selected_store_name"
     }
 }

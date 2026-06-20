@@ -56,11 +56,24 @@ export SHELFMAPPER_VISION_MODEL=claude-opus-4-8   # optional; see cost note
 uvicorn app.main:app --reload
 ```
 
-**Cost.** A session is many frames, so this is a high-volume image-extraction
-workload. The model is configurable via `SHELFMAPPER_VISION_MODEL` — point it at
-`claude-haiku-4-5` or `claude-sonnet-4-6` to cut per-frame cost. The system
-prompt is prompt-cached across a session's frames, and moving frame processing
-to the Batch API would halve cost again for offline runs.
+**Cost & coverage.** A session is many frames, so this is a high-volume
+image-extraction workload. Knobs:
+
+- `SHELFMAPPER_VISION_MODEL` — point at `claude-haiku-4-5` or
+  `claude-sonnet-4-6` to cut per-frame cost.
+- `SHELFMAPPER_FRAME_FPS` (default `1.0`) — frames sampled per second. At a
+  ~1 m/s walking pace 1 fps is ~1 frame/meter, enough to *locate* products but
+  liable to skip a small price tag; raise to `2` for better tag coverage at
+  higher cost. Products are de-duplicated across frames.
+
+The system prompt is prompt-cached across a session's frames, and moving frame
+processing to the Batch API would halve cost again for offline runs.
+
+**Walk-by vs. price tags.** Recognizing *what is where* (which drives route
+optimization) works from a normal walking video — the model identifies products
+and shelf sections even when the tag is unreadable. Reading *prices and exact
+variants* needs legible tags, so the app captures at FHD with stabilization and
+prompts the user to slow down or step closer where prices matter.
 
 Locating detections in the store is **not** the detector's concern — `mapping.py`
 does that from the recorded path, so any detector slots in unchanged. To add a
