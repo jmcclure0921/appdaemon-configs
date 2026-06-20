@@ -78,36 +78,48 @@ def _local_search(start: Point, stops: list[Point], order: list[int], round_trip
 
 
 def optimize_route(store_map: StoreMap, req: OptimizeRequest) -> OptimizedRoute:
-    """Match items to map entries and order the matched stops into a short route."""
+    """Match items to sections and order the sections into a short route.
+
+    Items that fall in the same section are grouped into a single stop, so you
+    visit each section once.
+    """
     start = req.start or Point(x=0.0, y=0.0)
 
-    matched: list[tuple[str, MapEntry]] = []
+    # Group matched items by the section they land in, preserving first-seen
+    # order of both sections and items.
+    sections: list[MapEntry] = []
+    items_by_section: dict[str, list[str]] = {}
+    section_index: dict[str, int] = {}
     unmatched: list[str] = []
     for item in req.items:
         entry = match_item(item, store_map.entries)
         if entry is None:
             unmatched.append(item)
-        else:
-            matched.append((item, entry))
+            continue
+        key = entry.label.lower().strip()
+        if key not in section_index:
+            section_index[key] = len(sections)
+            sections.append(entry)
+            items_by_section[key] = []
+        items_by_section[key].append(item)
 
-    if not matched:
+    if not sections:
         return OptimizedRoute(stops=[], unmatched=unmatched, total_distance_m=0.0)
 
-    positions = [e.position for _, e in matched]
+    positions = [e.position for e in sections]
     order = _nearest_neighbour(start, positions)
     order = _local_search(start, positions, order, req.round_trip)
 
     stops: list[RouteStop] = []
     for rank, idx in enumerate(order):
-        query, entry = matched[idx]
+        entry = sections[idx]
         stops.append(
             RouteStop(
                 order=rank,
-                query=query,
-                label=entry.label,
+                section=entry.label,
+                items=items_by_section[entry.label.lower().strip()],
                 position=entry.position,
                 path_distance_m=entry.path_distance_m,
-                matched=True,
             )
         )
 
@@ -116,5 +128,5 @@ def optimize_route(store_map: StoreMap, req: OptimizeRequest) -> OptimizedRoute:
         stops=stops,
         unmatched=unmatched,
         total_distance_m=round(total, 2),
-        ordered_query_list=[s.query for s in stops],
+        ordered_query_list=[item for s in stops for item in s.items],
     )

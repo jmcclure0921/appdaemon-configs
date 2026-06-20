@@ -37,7 +37,24 @@ def test_orders_stops_along_the_walk():
 def test_unmatched_items_reported():
     route = optimize_route(_map(), OptimizeRequest(items=["milk", "saffron threads"]))
     assert "saffron threads" in route.unmatched
-    assert any(s.query == "milk" for s in route.stops)
+    assert any("milk" in s.items for s in route.stops)
+
+
+def test_groups_items_in_the_same_section():
+    store = StoreMap(
+        store_id="s",
+        entries=[
+            MapEntry(label="Dairy & Eggs", position=Point(x=0, y=10),
+                     path_distance_m=10, keywords=["milk", "eggs", "butter"]),
+            MapEntry(label="Produce", position=Point(x=0, y=2),
+                     path_distance_m=2, keywords=["bananas"]),
+        ],
+    )
+    route = optimize_route(store, OptimizeRequest(items=["milk", "bananas", "eggs"]))
+    # milk + eggs collapse into one Dairy stop; bananas its own.
+    assert len(route.stops) == 2
+    dairy = next(s for s in route.stops if s.section == "Dairy & Eggs")
+    assert dairy.items == ["milk", "eggs"]
 
 
 def test_total_distance_is_consistent():

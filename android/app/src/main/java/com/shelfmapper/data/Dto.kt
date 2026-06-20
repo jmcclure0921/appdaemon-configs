@@ -75,11 +75,10 @@ data class OptimizeRequest(
 @Serializable
 data class RouteStop(
     val order: Int,
-    val query: String,
-    val label: String,
+    val section: String,                  // the section to walk to
+    val items: List<String>,              // shopping-list items found here
     val position: Point,
     @SerialName("path_distance_m") val pathDistanceM: Double,
-    val matched: Boolean = true,
 )
 
 @Serializable

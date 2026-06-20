@@ -89,21 +89,23 @@ items seen in the section so a shopping-list entry can be matched to it.
 
 ### RouteStop / OptimizedRoute
 
+Items in the same section are grouped into one stop, so you visit each section
+once.
+
 ```json
 {
   "stops": [
     {
       "order": 0,
-      "query": "milk",                 // the shopping-list item this satisfies
-      "label": "Dairy & Eggs",         // the section to walk to for it
+      "section": "Dairy & Eggs",       // the section to walk to
+      "items": ["milk", "eggs"],       // shopping-list items found here
       "position": { "x": 0.0, "y": 0.0 },
-      "path_distance_m": 0.0,
-      "matched": true
+      "path_distance_m": 0.0
     }
   ],
-  "unmatched": ["saffron"],            // items with no location in the map
+  "unmatched": ["saffron"],            // items with no section in the map
   "total_distance_m": 0.0,
-  "ordered_query_list": ["eggs", "milk", "..."]
+  "ordered_query_list": ["milk", "eggs", "..."]  // all items, in stop order
 }
 ```
 

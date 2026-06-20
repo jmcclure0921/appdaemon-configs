@@ -106,11 +106,10 @@ class OptimizeRequest(BaseModel):
 
 class RouteStop(BaseModel):
     order: int
-    query: str
-    label: str
+    section: str  # the section to walk to, e.g. "Dairy & Eggs"
+    items: list[str]  # shopping-list items found in this section
     position: Point
     path_distance_m: float
-    matched: bool = True
 
 
 class OptimizedRoute(BaseModel):

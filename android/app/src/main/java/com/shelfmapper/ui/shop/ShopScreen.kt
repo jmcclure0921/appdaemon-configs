@@ -118,9 +118,9 @@ private fun RouteCard(stops: List<RouteStop>, totalDistanceM: Double, unmatched:
                     verticalAlignment = Alignment.Top,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("${stop.order + 1}. ${stop.query}")
-                        // The section to walk to for this item.
-                        Text(stop.label, style = MaterialTheme.typography.bodySmall)
+                        Text("${stop.order + 1}. ${stop.section}")
+                        // The items to grab in this section.
+                        Text(stop.items.joinToString(", "), style = MaterialTheme.typography.bodySmall)
                     }
                     Text("${stop.pathDistanceM.roundToInt()} m", style = MaterialTheme.typography.bodySmall)
                 }
