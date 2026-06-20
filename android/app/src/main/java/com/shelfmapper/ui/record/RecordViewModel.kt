@@ -140,12 +140,10 @@ class RecordViewModel(
         _state.update { it.copy(phase = RecordPhase.Error, message = "Timed out waiting for processing") }
     }
 
-    private companion object {
-        const val MAX_POLLS = 30
-        const val POLL_INTERVAL_MS = 1_000L
-    }
-
     companion object {
+        private const val MAX_POLLS = 30
+        private const val POLL_INTERVAL_MS = 1_000L
+
         val Factory = viewModelFactory {
             initializer {
                 val app = shelfApp()
