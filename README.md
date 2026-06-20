@@ -51,10 +51,11 @@ This is an early foundation, not a finished product. What works today:
 - **Android**: a complete project scaffold implementing the record / shop /
   route screens against the API contract. Needs the Android SDK to build.
 
-The vision step is intentionally behind an interface
-(`backend/app/vision/base.py`) with a deterministic stub so the whole loop runs
-without a GPU or paid API. Drop in a real detector (cloud vision API or an
-on-device-trained model) by implementing one class.
+The vision step is behind an interface (`backend/app/vision/base.py`) with two
+implementations: a deterministic **stub** (so the whole loop runs with no GPU,
+API key, or ffmpeg) and a real **Claude** detector that samples video frames and
+extracts products + prices from the shelf tags via a multimodal model. Select
+with `SHELFMAPPER_VISION=stub|claude`; see `backend/README.md`.
 
 ## Quick start (backend)
 

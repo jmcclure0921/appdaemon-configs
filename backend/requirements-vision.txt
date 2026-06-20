@@ -1,0 +1,4 @@
+# Extra dependencies for the real Claude vision detector (SHELFMAPPER_VISION=claude).
+# Also requires the `ffmpeg` binary on PATH for frame sampling.
+-r requirements.txt
+anthropic>=0.69.0
